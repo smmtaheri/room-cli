@@ -97,6 +97,91 @@ def parse_hhmm(value):
     return datetime.strptime(value, "%H:%M").time()
 
 
+WEEKDAYS = {
+    "monday": 0,
+    "mon": 0,
+    "tuesday": 1,
+    "tue": 1,
+    "wednesday": 2,
+    "wed": 2,
+    "thursday": 3,
+    "thu": 3,
+    "friday": 4,
+    "fri": 4,
+    "saturday": 5,
+    "sat": 5,
+    "sunday": 6,
+    "sun": 6,
+}
+
+
+def resolve_weekday(base_day, target_weekday, direction):
+    delta = (target_weekday - base_day.weekday()) % 7
+    if direction == "next":
+        if delta == 0:
+            delta = 7
+        return base_day + timedelta(days=delta)
+    if direction == "last":
+        if delta == 0:
+            delta = 7
+        return base_day - timedelta(days=(7 - delta))
+    raise ValueError("Invalid direction")
+
+
+def parse_when_expression(value, today=None):
+    if not value:
+        return None
+
+    text = value.strip().lower()
+    today = today or date.today()
+
+    if text == "today":
+        return today
+    if text == "tomorrow":
+        return today + timedelta(days=1)
+    if text == "yesterday":
+        return today - timedelta(days=1)
+
+    m = re.fullmatch(r"([+-])\s*(\d+)\s*(?:d|day|days)?", text)
+    if m:
+        sign, n = m.groups()
+        delta = int(n) * (1 if sign == "+" else -1)
+        return today + timedelta(days=delta)
+
+    if text in WEEKDAYS:
+        target = WEEKDAYS[text]
+        delta = (target - today.weekday()) % 7
+        return today + timedelta(days=delta)
+
+    m = re.fullmatch(r"(next|last)\s+([a-z]+)", text)
+    if m and m.group(2) in WEEKDAYS:
+        return resolve_weekday(today, WEEKDAYS[m.group(2)], m.group(1))
+
+    m = re.fullmatch(r"(next|last)\s+week\s+([a-z]+)", text)
+    if m and m.group(2) in WEEKDAYS:
+        week_base = today + timedelta(days=7 if m.group(1) == "next" else -7)
+        target = WEEKDAYS[m.group(2)]
+        delta = target - week_base.weekday()
+        return week_base + timedelta(days=delta)
+
+    raise SystemExit(
+        "Invalid --when value. Examples: today, tomorrow, yesterday, +2, -2, saturday, next saturday, last friday, next week monday."
+    )
+
+
+def resolve_day(date_text, when_text):
+    if date_text and when_text:
+        raise SystemExit("Use only one of --date or --when.")
+
+    if when_text:
+        return parse_when_expression(when_text)
+
+    if date_text:
+        return date.fromisoformat(date_text)
+
+    return date.today()
+
+
 def normalize_room(email):
     return email.split("@")[0].lower()
 
@@ -412,6 +497,32 @@ def busy_minutes(busy_items, start, end):
     return total
 
 
+def minutes_to_hhmm(minutes):
+    h = minutes // 60
+    m = minutes % 60
+    return f"{h}h{m:02d}m"
+
+
+def merge_intervals(intervals):
+    merged = []
+    for s, e in sorted(intervals):
+        if s >= e:
+            continue
+        if not merged or s > merged[-1][1]:
+            merged.append([s, e])
+        else:
+            merged[-1][1] = max(merged[-1][1], e)
+    return merged
+
+
+def overlap_window(start, end, win_start, win_end):
+    s = max(start, win_start)
+    e = min(end, win_end)
+    if s >= e:
+        return None
+    return s, e
+
+
 def room_info(room):
     return ROOM_INFO.get(room, {
         "display": room,
@@ -715,7 +826,7 @@ def print_rooms_info(people=None, tv=None, unit=None, include_hr=True):
         print(f"- {room:<10} {room_info_text(room)}")
 
 
-def print_person_report(busy_by_room, name_filter=None):
+def print_person_report(busy_by_room, window_start, window_end, name_filter=None):
     people = {}
 
     for room, busy_items in busy_by_room.items():
@@ -723,17 +834,35 @@ def print_person_report(busy_by_room, name_filter=None):
             person = reserver_full_name(subject)
             if name_filter and name_filter.lower() not in person.lower():
                 continue
+            clipped = overlap_window(start, end, window_start, window_end)
+            if not clipped:
+                continue
             people.setdefault(person, [])
-            people[person].append((start, end, room, fb_type))
+            people[person].append((clipped[0], clipped[1], room, fb_type))
 
-    print(f"\n{BOLD}Person report{RESET}\n")
+    total_window_minutes = int((window_end - window_start).total_seconds() // 60)
+    print(
+        f"\n{BOLD}Person report{RESET} "
+        f"({window_start.strftime('%Y-%m-%d %H:%M')} → {window_end.strftime('%H:%M')})\n"
+    )
 
     if not people:
         print(f"{YELLOW}No reservation found.{RESET}")
         return
 
     for person in sorted(people):
+        intervals = [(s, e) for s, e, *_ in people[person]]
+        merged = merge_intervals(intervals)
+        busy_m = sum(int((e - s).total_seconds() // 60) for s, e in merged)
+        free_m = max(0, total_window_minutes - busy_m)
+        busy_pct = (busy_m / total_window_minutes * 100) if total_window_minutes else 0
+        free_pct = (free_m / total_window_minutes * 100) if total_window_minutes else 0
+
         print(f"{CYAN}{person}{RESET}")
+        print(
+            f"  Summary: busy={minutes_to_hhmm(busy_m)} ({busy_pct:.1f}%) | "
+            f"free={minutes_to_hhmm(free_m)} ({free_pct:.1f}%)"
+        )
         for start, end, room, fb_type in sorted(people[person]):
             print(
                 f"  - {start.strftime('%H:%M')} → {end.strftime('%H:%M')} | "
@@ -796,7 +925,7 @@ def get_time_range(day, from_time=None, to_time=None, duration=60):
         end = start + timedelta(minutes=duration)
 
     elif not from_time and not to_time:
-        start = now_dt
+        start = datetime.combine(day, now_dt.time())
         end = start + timedelta(minutes=duration)
 
     else:
@@ -988,7 +1117,8 @@ def resolve_tv(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--date", default=date.today().isoformat())
+    parser.add_argument("--date")
+    parser.add_argument("--when")
 
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -1021,6 +1151,9 @@ def main():
 
     p_person = sub.add_parser("person")
     p_person.add_argument("--name")
+    p_person.add_argument("from_time", nargs="?")
+    p_person.add_argument("to_time", nargs="?")
+    p_person.add_argument("--duration", type=int, default=60)
 
     p_summary = sub.add_parser("summary")
     p_summary.add_argument("from_time", nargs="?")
@@ -1041,7 +1174,7 @@ def main():
     add_filters(p_smart)
 
     args = parser.parse_args()
-    day = date.fromisoformat(args.date)
+    day = resolve_day(args.date, args.when)
 
     if args.cmd == "info":
         print_rooms_info(
@@ -1098,7 +1231,12 @@ def main():
         )
 
     elif args.cmd == "person":
-        print_person_report(busy_by_room, name_filter=args.name)
+        if args.from_time or args.to_time:
+            start, end = get_time_range(day, args.from_time, args.to_time, args.duration)
+        else:
+            start = datetime.combine(day, time(0, 0))
+            end = start + timedelta(days=1)
+        print_person_report(busy_by_room, start, end, name_filter=args.name)
 
     elif args.cmd == "summary":
         start, end = get_time_range(day, args.from_time, args.to_time, args.duration)
