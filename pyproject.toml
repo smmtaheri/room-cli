@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "room-cli"
+version = "0.1.0"
+description = "CLI tool for checking and booking Nobitex meeting rooms via OWA"
+authors = ["Mohammad Taheri <admirer135@gmail.com>"]
+readme = "README.md"
+packages = []
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
