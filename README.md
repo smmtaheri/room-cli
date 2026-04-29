@@ -1,6 +1,6 @@
-# Nobitex Meeting Room CLI
+# Meeting Room CLI
 
-A Python CLI tool for checking and booking Nobitex meeting rooms through OWA / Exchange.
+A Python CLI tool for checking and booking meeting rooms through OWA / Exchange.
 
 ## Features
 
