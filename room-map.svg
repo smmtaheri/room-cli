@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="940" viewBox="0 0 1300 940">
+<defs><style>
+text{font-family:'DejaVu Sans',sans-serif;fill:#1d3544}.title{font-size:33px;font-weight:700}.sub{font-size:18px}.unit{font-size:33px;font-weight:700;fill:#456778}.roomtext{font-size:20px;font-weight:700;fill:#66401b}.small{font-size:18px}.wall{stroke:#263f4b;stroke-width:5;fill:none}.room{fill:#ffe7bf;stroke:#c2833c;stroke-width:2.5;rx:6}
+</style><pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.1" fill="#b9d0d3"/></pattern></defs>
+<rect width="1300" height="940" fill="#f7f8f5"/>
+<text x="650" y="66" class="title" text-anchor="middle" direction="rtl">جای اتاق‌های جلسه در ساختمان</text>
+<text x="650" y="100" class="sub" text-anchor="middle" direction="rtl">موقعیت‌ها شماتیک‌اند؛ فاصله و ابعاد واقعی هنوز اندازه‌گیری نشده‌اند</text>
+
+<!-- Ownership and shared circulation. No highlighted dining or rear connection. -->
+<path d="M140 190 H1060 V500 H820 V310 H390 V500 H140 Z" fill="#e0eee9"/>
+<rect x="140" y="500" width="250" height="270" fill="#e7e9f6"/>
+<rect x="820" y="500" width="240" height="270" fill="#e5e8ea"/>
+<path d="M390 310 H820 V370 H445 V710 H820 V770 H390 Z" fill="#d4e9ee" stroke="#76a4ae" stroke-width="2"/>
+<rect x="445" y="370" width="375" height="340" fill="url(#dots)" stroke="#9cb8bd" stroke-width="2"/>
+<rect x="590" y="450" width="130" height="104" fill="#dee6e7" stroke="#718d93" stroke-width="2.5" rx="7"/>
+<text x="655" y="492" class="small" text-anchor="middle" direction="rtl">آسانسور</text>
+<text x="655" y="522" class="sub" text-anchor="middle" direction="rtl">جای تقریبی</text>
+<text x="630" y="623" class="unit" text-anchor="middle" direction="rtl">پاسیو</text>
+<text x="600" y="352" class="small" text-anchor="middle" direction="rtl">راهروی مشترک</text>
+<text x="630" y="753" class="small" text-anchor="middle" direction="rtl">ادامهٔ راهرو تا کنار واحد دیگر</text>
+
+<!-- Outer envelope and the neighboring, independent unit. -->
+<path d="M140 770 V190 H1060 V770 H820 M390 770 H140 M390 310 V770 M820 310 V770" class="wall"/>
+<path d="M140 500 H390 M820 500 H1060" stroke="#879fa7" stroke-width="2.5" stroke-dasharray="9 8"/>
+<text x="260" y="353" class="unit" text-anchor="middle">۱۰۰۲</text>
+<text x="941" y="270" class="unit" text-anchor="middle">۱۰۰۱</text>
+<text x="262" y="656" class="unit" text-anchor="middle">۱۰۰۳</text>
+<text x="940" y="624" class="small" text-anchor="middle" direction="rtl">واحد دیگر</text>
+<text x="940" y="654" class="sub" text-anchor="middle" direction="rtl">متعلق به دیگران</text>
+
+<!-- Solana is on the upper edge, in Bitcoin's former position. -->
+<rect class="room" x="739" y="200" width="158" height="65"/>
+<text class="roomtext" x="818" y="241" text-anchor="middle">Solana</text>
+<!-- Bitcoin and Sandbox sit above the pair facing Node 2 and Link 2. -->
+<rect class="room" x="946" y="292" width="105" height="58"/>
+<text class="roomtext" x="998" y="327" text-anchor="middle" font-size="15">Bitcoin</text>
+<rect class="room" x="946" y="365" width="105" height="58"/>
+<text class="roomtext" x="998" y="400" text-anchor="middle" font-size="13">Sandbox</text>
+<!-- Satoshi and Doge remain side by side, opposite Node 2 and Link 2. -->
+<rect class="room" x="830" y="448" width="105" height="58"/>
+<text class="roomtext" x="882" y="483" text-anchor="middle" font-size="15">Satoshi</text>
+<rect class="room" x="946" y="448" width="105" height="58"/>
+<text class="roomtext" x="998" y="483" text-anchor="middle" font-size="16">Doge</text>
+
+<!-- Node and Link are four separate rooms in two adjacent pairs. -->
+<rect class="room" x="238" y="375" width="72" height="58"/>
+<text class="roomtext" x="274" y="410" text-anchor="middle" font-size="13">Node 1</text>
+<rect class="room" x="318" y="375" width="72" height="58"/>
+<text class="roomtext" x="354" y="410" text-anchor="middle" font-size="13">Link 1</text>
+<rect class="room" x="238" y="448" width="72" height="58"/>
+<text class="roomtext" x="274" y="483" text-anchor="middle" font-size="13">Node 2</text>
+<rect class="room" x="318" y="448" width="72" height="58"/>
+<text class="roomtext" x="354" y="483" text-anchor="middle" font-size="13">Link 2</text>
+<rect class="room" x="238" y="521" width="152" height="58"/>
+<text class="roomtext" x="314" y="557" text-anchor="middle" font-size="16">Stellar</text>
+<rect class="room" x="164" y="686" width="107" height="64"/>
+<text class="roomtext" x="217" y="726" text-anchor="middle">ETH</text>
+
+<text x="650" y="849" class="sub" text-anchor="middle" direction="rtl">موقعیت اتاق‌ها شماتیک است؛ جای دقیق دیوارها و ورودی‌ها هنوز مشخص نیست</text>
+</svg>

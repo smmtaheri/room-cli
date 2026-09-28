@@ -1,17 +1,17 @@
-[tool.poetry]
+[project]
 name = "room-cli"
 version = "0.1.0"
 description = "CLI tool for checking and booking meeting rooms via OWA"
-authors = ["Mohammad Taheri <admirer135@gmail.com>"]
 readme = "README.md"
-packages = []
+requires-python = ">=3.12,<4.0"
+authors = [{ name = "Mohammad Taheri", email = "admirer135@gmail.com" }]
+dependencies = [
+    "requests>=2.31.0,<3.0.0",
+    "google-api-python-client>=2.196.0,<3.0.0",
+    "google-auth-oauthlib>=1.4.0,<2.0.0",
+    "google-auth-httplib2>=0.4.0,<0.5.0",
+    "python-dateutil>=2.9.0.post0,<3.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-requests = "^2.31.0"
-
-[tool.poetry.group.dev.dependencies]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv]
+package = false

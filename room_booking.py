@@ -23,12 +23,14 @@ COOKIE_MAX_AGE_SECONDS = 8 * 60 * 60
 ROOMS = [
     "Ethereum@nobitex.net",
     "Bitcoin@nobitex.net",
-    "cardano@nobitex.net",
+    "blockchain@nobitex.net",
     "dai@nobitex.net",
     "doge@nobitex.net",
     "link@nobitex.net",
     "lightning@nobitex.net",
     "ripple@nobitex.net",
+    "Satoshi@nobitex.net",
+    "Stellar@nobitex.net",
     "solana@nobitex.net",
     "not@nobitex.net",
     "ton@nobitex.net",
@@ -38,18 +40,18 @@ ROOMS = [
 ROOM_INFO = {
     "ethereum": {"display": "Ethereum", "location": "1003", "unit": "Floor 10", "capacity": 12, "tv": True, "hr_only": False},
     "bitcoin": {"display": "Bitcoin", "location": "1002", "unit": "Floor 10", "capacity": 10, "tv": True, "hr_only": False},
-    "cardano": {"display": "Cardano", "location": "Ajori", "unit": "Ajori", "capacity": None, "tv": None, "hr_only": False},
+    "blockchain": {"display": "Blockchain", "location": "4th Floor", "unit": "Floor 4", "capacity": 16, "tv": True, "hr_only": False},
     "dai": {"display": "DAI", "location": "1002", "unit": "Floor 10", "capacity": 4, "tv": False, "hr_only": False},
     "doge": {"display": "Doge", "location": "1002", "unit": "Floor 10", "capacity": None, "tv": None, "hr_only": False},
     "link": {"display": "Link", "location": "1002", "unit": "Floor 10", "capacity": 4, "tv": True, "hr_only": True},
-    "lightning": {"display": "Lightning", "location": "1002", "unit": "Floor 10", "capacity": None, "tv": None, "hr_only": False},
+    "lightning": {"display": "Lightning", "location": "4th Floor", "unit": "Floor 4", "capacity": 6, "tv": True, "hr_only": False},
     "ripple": {"display": "Ripple", "location": "1002", "unit": "Floor 10", "capacity": 4, "tv": False, "hr_only": False},
+    "satoshi": {"display": "Satoshi", "location": "1002", "unit": "Floor 10", "capacity": 4, "tv": True, "hr_only": False},
+    "stellar": {"display": "Stellar", "location": "1002", "unit": "Floor 10", "capacity": 4, "tv": True, "hr_only": False},
     "solana": {"display": "Solana", "location": "1001", "unit": "Floor 10", "capacity": 10, "tv": True, "hr_only": False},
     "not": {"display": "NOT", "location": "8th Floor", "unit": "Floor 8", "capacity": 4, "tv": False, "hr_only": False},
-    "ton": {"display": "TON", "location": "8th Floor", "unit": "Floor 8", "capacity": None, "tv": None, "hr_only": False},
-    "oracle": {"display": "Oracle", "location": "Ajori", "unit": "Ajori", "capacity": None, "tv": None, "hr_only": False},
-    "satoshi": {"display": "Satoshi", "location": "Floor 10", "unit": "Floor 10", "capacity": None, "tv": None, "hr_only": False},
-    "stellar": {"display": "Stellar", "location": "Floor 10", "unit": "Floor 10", "capacity": None, "tv": None, "hr_only": False},
+    "ton": {"display": "TON", "location": "8th Floor", "unit": "Floor 8", "capacity": 4, "tv": False, "hr_only": False},
+    "oracle": {"display": "Oracle", "location": "2nd Floor", "unit": "Floor 2", "capacity": 6, "tv": True, "hr_only": False},
 }
 
 BUSY_TYPES = {"Busy", "Tentative", "OOF"}
@@ -59,7 +61,8 @@ ALIASES = {
     "bitcoin": "bitcoin",
     "eth": "ethereum",
     "ethereum": "ethereum",
-    "cardano": "cardano",
+    "cardano": "blockchain",
+    "blockchain": "blockchain",
     "dai": "dai",
     "doge": "doge",
     "link": "link",
@@ -186,9 +189,13 @@ def normalize_room(email):
     return email.split("@")[0].lower()
 
 
+def room_keys():
+    return {normalize_room(email) for email in ROOMS}
+
+
 def normalize_room_arg(room):
     key = ALIASES.get(room.lower(), room.lower())
-    if key not in [normalize_room(email) for email in ROOMS]:
+    if key not in room_keys():
         raise SystemExit(f"Unknown room: {room}")
     return key
 
@@ -580,11 +587,12 @@ def status_symbol(is_free):
 
 def room_box_lines(name, busy_by_room, start, end, min_width=16, max_width=34):
     key = ALIASES.get(name.lower(), name.lower())
+    known = key in busy_by_room
     busy_items = busy_by_room.get(key, [])
-    free = room_is_free(busy_items, start, end)
-    color = GREEN if free else RED
+    free = room_is_free(busy_items, start, end) if known else None
+    color = GREEN if free is True else RED if free is False else YELLOW
 
-    names = reserver_names_for_range(busy_items, start, end)
+    names = reserver_names_for_range(busy_items, start, end) if known else ["STATUS UNKNOWN"]
 
     longest = max([len(name), *(len(person) for person in names)] or [len(name)])
     width = min(max_width, max(min_width, longest + 4))
@@ -678,6 +686,29 @@ def print_floor_block(title, rendered_rows, padding_right=2):
     print("└" + h(width) + "┘")
 
 
+def render_room_grid(layout, box, gap=3):
+    rows = [[box(name) if name else None for name in row] for row in layout]
+    widths = [
+        max((item[1] for row in rows if (item := row[col]) is not None), default=16)
+        for col in range(len(layout[0]))
+    ]
+    rendered = []
+
+    for row in rows:
+        height = max(len(item[0]) for item in row if item is not None)
+        for line_index in range(height):
+            cells = [
+                pad_visible(item[0][line_index], widths[col])
+                if item is not None and line_index < len(item[0])
+                else " " * widths[col]
+                for col, item in enumerate(row)
+            ]
+            rendered.append((" " * gap).join(cells))
+        rendered.append("")
+
+    return rendered[:-1]
+
+
 def print_map(busy_by_room, day, from_t, to_t):
     start = datetime.combine(day, from_t)
     end = datetime.combine(day, to_t)
@@ -686,59 +717,32 @@ def print_map(busy_by_room, day, from_t, to_t):
         return room_box_lines(room, busy_by_room, start, end)
 
     print(f"\n{BOLD}Map view: {day} {from_t} → {to_t}{RESET}")
-    print(f"{GREEN}Green = free{RESET} | {RED}Red = busy{RESET}")
+    print(f"{GREEN}Green = free{RESET} | {RED}Red = busy{RESET} | {YELLOW}Yellow = status unknown{RESET}")
 
-    gap = 4
-    floor_left = 2
-
-    eth = box("Ethereum")
-    btc = box("BTC")
-    dai = box("DAI")
-    doge = box("Doge")
-
-    ripple = box("Ripple")
-    stellar = box("Stellar")
-    satoshi = box("Satoshi")
-    link = box("Link")
-    solana = box("Solana")
-
-    col1_w = max(eth[1], 16)
-    col2_w = max(btc[1], 16)
-    col3_w = max(dai[1], ripple[1], satoshi[1], link[1], 16)
-    col4_w = max(doge[1], solana[1], 16)
-
-    col1_x = floor_left
-    col2_x = col1_x + col1_w + gap
-    col3_x = col2_x + col2_w + gap
-    col4_x = col3_x + col3_w + gap
-
-    floor10_rows = []
-    floor10_rows += render_box_group_at(
-        col1_x,
-        [eth, btc, dai, doge],
-        gap=gap,
+    floor10_rows = render_room_grid(
+        [
+            [None, None, None, "Solana", None],
+            [None, None, None, None, "Bitcoin"],
+            ["Node 1", "Link 1", None, None, "Sandbox"],
+            ["Node 2", "Link 2", None, "Satoshi", "Doge"],
+            ["Stellar", None, None, None, None],
+            ["Ethereum", None, None, None, None],
+        ],
+        box,
     )
-    floor10_rows += render_box_group_at(
-        col3_x,
-        [ripple, stellar],
-        gap=gap,
-    )
-    floor10_rows += render_box_group_at(col3_x, [satoshi], gap=gap)
-    floor10_rows += render_box_group_at(col3_x, [link], gap=gap)
-    floor10_rows += render_box_group_at(col4_x, [solana], gap=gap)
 
     print_floor_block("Floor 10", floor10_rows)
 
     floor8_rows = render_box_group_at(
         10,
-        [box("NOT"), box("TON")],
+        [box("TON")],
         gap=10,
     )
     print_floor_block("Floor 8", floor8_rows)
 
     ajori_rows = render_box_group_at(
         10,
-        [box("Cardano"), box("Oracle")],
+        [box("Blockchain"), box("Oracle")],
         gap=10,
     )
     print_floor_block("Ajori", ajori_rows)
@@ -786,7 +790,7 @@ def print_range_summary(busy_by_room, day, from_t, to_t, people=None, tv=None, u
 
 
 def print_room_timeline(busy_by_room, room, day, from_t, to_t, step_minutes):
-    room = ALIASES.get(room.lower(), room.lower())
+    room = normalize_room_arg(room)
 
     if room not in busy_by_room:
         raise SystemExit(f"Unknown room: {room}")
